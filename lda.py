@@ -62,7 +62,7 @@ if __name__=="__main__":
 	parser = argparse.ArgumentParser()
 
 	# K is the number of topics to use when running the LDA algorithm. Default 100.
-	parser.add_argument('-K', default=100, type=int)
+	parser.add_argument('-K', default=10, type=int)
 
 	# Specifies the file which is used by to extract the topics. 
 	# The default file is "review_sample_100000.txt"

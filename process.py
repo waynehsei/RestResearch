@@ -9,7 +9,7 @@ from abc import ABCMeta, abstractmethod
 
 path2files="YelpChallenge/"
 path2business=path2files+"yelp_academic_dataset_business.json"
-path2reviews=path2files+"yelp_review_1_to_1000.json"
+path2reviews=path2files+"yelp_academic_dataset_review.json"
 
 class Restaurant:
 
@@ -17,11 +17,13 @@ class Restaurant:
 	reviews = []
 	texts = []
 
-	def __init__(self, name, rid, city, star):
+	def __init__(self, name, rid, city, star, latitude, longitude):
 		self.rid = rid
 		self.city = city
 		self.star = star
 		self.name = name
+		self.latitude = latitude
+		self.longitude = longitude
 
 	def addCat(self, cats):
 		self.categories = set(cats).union(self.categories) - set(['Restaurants'])
@@ -54,40 +56,8 @@ class CatRest(Factory):
 			if cat in self.restaurants:
 				self.restaurants[cat].append(rest)
 			else:
-				self.restaurants[cat] = [rest]	
+				self.restaurants[cat] = [rest]
 
-# class Factory:
-
-# 	city2rid = {}
-# 	cat2rid = {}
-# 	star2rid = {}
-
-# 	def catRid(self, rest):
-# 		# add rid into category
-# 		for cat in rest.categories:
-# 			if cat in self.cat2rid:
-# 				self.cat2rid[cat].append(rest)
-# 			else:
-# 				self.cat2rid[cat] = [rest]
-
-# 	def cityRid(self, rest):
-# 		if rest.city in self.city2rid:
-# 			self.city2rid[rest.city].append(rest)
-# 		else:
-# 			self.city2rid[rest.city] = [rest]
-
-# 	def byStar(self, rest):
-# 		if rest.star in self.star2rid:
-# 			self.star2rid[rest.star].append(rest)
-# 		else:
-# 			self.star2rid[rest.star] = [rest]
-
-# 	def add(self, rest):
-# 		#self.catRid(rest)
-# 		#self.cityRid(rest)
-# 		self.byStar(rest)
-
-# rev_star, rev_cuisine
 def main(args):
 
 	r = 'Restaurants'
@@ -99,19 +69,20 @@ def main(args):
 		with open(path2business, 'r') as f:
 			for line in f.readlines():
 				business_json = json.loads(line)
-				bjc = business_json['categories']
-				if bjc == None:
-					continue
-				if r in bjc:
-					if len(bjc) > 1:
-						rest = Restaurant(business_json['name'], business_json['business_id'], business_json['city'], business_json['stars'])
-						rest.addCat(business_json['categories'])
-						rest2rid[rest.rid] = rest
-						factory.add(rest)
+				if business_json['city'] == "Edinburgh" or business_json['city'] == "City of Edinburgh":
+					bjc = business_json['categories']
+					if bjc == None:
+						continue
+					if r in bjc:
+						if len(bjc) > 1:
+							rest = Restaurant(business_json['name'], business_json['business_id'], business_json['city'], business_json['stars'], business_json['latitude'], business_json['longitude'])
+							#rest.addCat(business_json['categories'])
+							rest2rid[rest.rid] = rest
+							factory.add(rest)
 			f.close()
 
-		with open('data_rest2rid.pickle', 'wb') as f:
-			pickle.dump(rest2rid,f)
+		# with open('data_rest2rid.pickle', 'wb') as f:
+		# 	pickle.dump(rest2rid,f)
 
 		# with open('restaurantIds2ratings.txt', 'w') as f:
 		# 	for key in factory.city2rid:
@@ -199,29 +170,49 @@ def main(args):
 						factory.restaurants[city][review_json['business_id']].addText(review_json['text'])
 			f.close()
 
+		with open('data_edinburg_rest.pickle', 'wb') as f:
+			pickle.dump(factory.restaurants,f)
+
 		path = os.getcwd()
-		os.makedirs(path + "/restaurants")
-		os.chdir(path + "/restaurants")
+		os.makedirs(path + "/Edinburgh_city")
+		os.chdir(path + "/Edinburgh_city")
 		for city in factory.restaurants:
-			f_path = os.getcwd()
-			if not os.path.exists(f_path + "/%s" % city):
-				os.makedirs(f_path + "/%s" % city)
-			os.chdir(f_path + "/%s" % city)
-			print os.getcwd()
+			print city
+			# f_path = os.getcwd()
+			# if not os.path.exists(f_path + "/%s" % city):
+			# 	os.makedirs(f_path + "/%s" % city)
+			# os.chdir(f_path + "/%s" % city)
+			# print os.getcwd()
 			for rid in factory.restaurants[city]:
 				r = factory.restaurants[city][rid]
 				rname = r.name.replace('/', ' ')
 				with open('%s.txt' % rname, 'w') as f:
 					f.write('\n'.join(r.texts).encode('ascii', 'ignore'))
 				f.close()
-			os.chdir(f_path)
+			#os.chdir(f_path)
 		print "processed restaurants in city"
+
+	# filter endinburgh city in city center
+	if args == "filter":
+		rcount = 0
+		candidate = []
+		edin_rest = pickle.load(open('data_edinburg_rest.pickle', 'rb'))
+		for city in edin_rest:
+			for rid, rest in edin_rest[city].items():
+				if -3.209209 < rest.longitude < -3.179469 and 55.944093 < rest.latitude < 55.956539:
+					rcount += 1
+					candidate.append(rest.name.encode('ascii', 'ignore'))
+		#rcount = 569
+		sample_edn = random.sample(candidate, 100)
+		with open('sample_edinburg.pickle', 'wb') as f:
+			pickle.dump(sample_edn,f)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--star', action='store_true')
 	parser.add_argument('--cuisine', action='store_true')
 	parser.add_argument('--city', action='store_true')
+	parser.add_argument('--filter', action='store_true')
 
 	args = parser.parse_args()
 
@@ -234,6 +225,8 @@ if __name__ == "__main__":
 	elif args.city:
 		print "processing restaurants by city"
 		main("city_rest")
+	elif args.filter:
+		main("filter")
 
 
 

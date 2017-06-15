@@ -6,31 +6,47 @@ from gensim import matutils
 from time import time
 import os
 
+class idfVectorizer():
+
+	text = []
+
+	def __init__(self, sample_file, numfeatures):
+
+		self.vectorizer = TfidfVectorizer(max_df=0.5, max_features=numfeatures, min_df=2, stop_words='english', 
+			ngram_range=(1,2), use_idf=True)
+
+		with open(sample_file, 'r') as f:
+			self.text = f.readlines()
+
+		self.X = self.extract_features()
+		self.id2words = self.mapId2Wds() 
+
+
+	def extract_features(self):		
+		t0 = time()
+		print("Extracting featrues from the training dataset using a sparse vectorizer")
+		X = self.vectorizer.fit_transform(self.text)
+		print("done in %fs" % (time() - t0))
+		print("n_samples: %d, n_features: %d" % X.shape)
+		return X
+
+	def mapId2Wds(self):
+		id2words = {}
+		# mapping from feature id to actual word
+		for i,word in enumerate(self.vectorizer.get_feature_names()):
+			id2words[i] = word
+		return id2words
+
 def main(K, numfeatures, sample_file, num_display_words, outputfile):
+	
 	K_clusters = K
-	vectorizer = TfidfVectorizer(max_df=0.5, max_features=numfeatures, min_df=2, stop_words='english',
-		ngram_range=(1,2), use_idf=True)
-
-	text=[]
-	with open(sample_file, 'r') as f:
-		text = f.readlines()
-
-	t0 = time()
-	print("Extracting featrues from the training dataset using a sparse vectorizer")
-	X = vectorizer.fit_transform(text)
-	print("done in %fs" % (time() - t0))
-	print("n_samples: %d, n_features: %d" % X.shape)
-
-	# mapping from feature id to actual word
-	id2words={}
-	for i,word in enumerate(vectorizer.get_feature_names()):
-		id2words[i] = word
+	vectorizer = idfVectorizer(sample_file, numfeatures)
 
 	t0 = time()
 	print("Applying topic modeling, using LDA")
 	print(str(K_clusters) + "topics")
-	corpus = matutils.Sparse2Corpus(X, documents_columns=False)
-	lda = models.ldamodel.LdaModel(corpus, num_topics=K_clusters, id2word=id2words)
+	corpus = matutils.Sparse2Corpus(vectorizer.X, documents_columns=False)
+	lda = models.ldamodel.LdaModel(corpus, num_topics=K_clusters, id2word=vectorizer.id2words)
 	print("done in %fs" % (time() - t0))
 
 	output_text = []
@@ -49,9 +65,6 @@ def main(K, numfeatures, sample_file, num_display_words, outputfile):
 	for i, item in enumerate(lda.show_topics(num_topics=K_clusters, num_words=num_display_words, formatted=False)):
 		topic_terms = {term: str(weight) for term, weight in item[1]}
 		output_json.append(topic_terms)
-
-	with open(outputfile.strip(".txt") + ".json", 'w') as f:
-		json.dump(output_json, f)
 
 
 if __name__=="__main__":

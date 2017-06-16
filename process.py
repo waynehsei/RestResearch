@@ -81,14 +81,6 @@ def main(args):
 							factory.add(rest)
 			f.close()
 
-		# with open('data_rest2rid.pickle', 'wb') as f:
-		# 	pickle.dump(rest2rid,f)
-
-		# with open('restaurantIds2ratings.txt', 'w') as f:
-		# 	for key in factory.city2rid:
-		# 		for item in factory.city2rid[key]:
-		# 			f.write(item.rid + " " + str(item.star) + "\n")
-		# 	f.close()
 		print "saved restaurant information"
 		return factory
 
@@ -178,11 +170,6 @@ def main(args):
 		os.chdir(path + "/Edinburgh_city")
 		for city in factory.restaurants:
 			print city
-			# f_path = os.getcwd()
-			# if not os.path.exists(f_path + "/%s" % city):
-			# 	os.makedirs(f_path + "/%s" % city)
-			# os.chdir(f_path + "/%s" % city)
-			# print os.getcwd()
 			for rid in factory.restaurants[city]:
 				r = factory.restaurants[city][rid]
 				rname = r.name.replace('/', ' ')
@@ -201,9 +188,19 @@ def main(args):
 			for rid, rest in edin_rest[city].items():
 				if -3.209209 < rest.longitude < -3.179469 and 55.944093 < rest.latitude < 55.956539:
 					rcount += 1
-					candidate.append(rest.name.encode('ascii', 'ignore'))
+					#rname = rest.name.replace('/', ' ')
+					candidate.append(rest)
 		#rcount = 569
 		sample_edn = random.sample(candidate, 100)
+
+		path = os.getcwd()
+		os.makedirs(path + "/sample_path")
+		for r in sample_edn:
+			os.chdir(path + "/sample_path")
+			with open('%s.txt' % r.name.replace('/', ' '), 'w') as f:
+				f.write('\n')
+			os.chdir(path)
+
 		with open('sample_edinburg.pickle', 'wb') as f:
 			pickle.dump(sample_edn,f)
 

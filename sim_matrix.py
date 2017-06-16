@@ -8,14 +8,21 @@ from gensim import models, matutils
 import random
 import json
 import math
+import pickle
+import argparse
+from process import Restaurant
 
-cityPath = "50EDN/*"
+cityPath = "Edinburgh_city/*"
 
-def processlda():
+def processlda(filtered=False):
 
 	rest_list = glob.glob(cityPath)
 	rest2rev = {}
 	reviews = []
+
+	# filter 100 restaurant in center of Edinburgh
+	if filtered:
+		rest_list = make_sample()
 
 	# extract the first 30 restaurants
 	#sample_number = 3
@@ -46,20 +53,19 @@ def processlda():
 			json.dump(output_json, f)
 		os.chdir(path)			
 
-		#if count == sample_number: break
-	print count
-
 
 def cosineSim():
 	# cosine Similarity (d1, d2) =  Dot product(d1, d2) / ||d1|| * ||d2|
 	# Dot product (d1,d2) = d1[0] * d2[0] + d1[1] * d2[1] * d1[n] * d2[n]
 	# ||d1|| = square root(d1[0]2 + d1[1]2 + ... + d1[n]2)
 	# ||d2|| = square root(d2[0]2 + d2[1]2 + ... + d2[n]2)
-	simMatix = []
+	simMatrix = []
+	rls = []
 	rj_list = glob.glob('RestJson/*')
 	for ip in enumerate(rj_list):
 		cosine_sim = []
-		rname = ip[1].split('/')[-1].strip('.txt')
+		rname = ip[1].split('/')[-1].strip(".json")
+		rls.append(rname)
 		# reference restaurant
 		with open(ip[1]) as f:
 			ref_bagws = json.load(f)[0]
@@ -82,21 +88,37 @@ def cosineSim():
 					for w2, f2 in candidate.items():
 						norm2 += float(f2)**2
 				cosine_sim.append(round(dot/(math.sqrt(norm1)*math.sqrt(norm2)), 5))
-			simMatix.append(cosine_sim)
+			simMatrix.append(cosine_sim)
 
-	# print similiarity matrix
-	for row in simMatix:
-		print row
+	data = []
+	for i, row in enumerate(simMatrix):
+		for j, s in enumerate(row):
+			score = [i, j, s]
+			data.append(score)
 
+	with open('cos_sim_tfidf.json', 'w') as f:
+		json.dump({'data': data,'meta': {'restaurants': rls}}, f)
 
-	# path = os.getcwd()
-
-
-def main():
-	#processlda()
-	cosineSim()
-
-
+def main(args):
+	if args == 'filter':
+		processlda(True)
+	elif args == 'simMatrix':
+		cosineSim()
+	else:
+		processlda()
 
 if __name__=="__main__":
-	main()
+
+	parser = argparse.ArgumentParser()
+	parser.add_argument('--filter', action='store_true')
+	parser.add_argument('--simMatrix', action='store_true')
+
+	args = parser.parse_args()
+
+	if args.filter:
+		main('filter')
+	elif args.simMatrix:
+		main('simMatrix')
+	else:
+		main(False)
+

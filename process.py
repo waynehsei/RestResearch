@@ -15,7 +15,6 @@ class Restaurant:
 
 	categories = set([])
 	reviews = []
-	texts = []
 
 	def __init__(self, name, rid, city, star, latitude, longitude):
 		self.rid = rid
@@ -24,6 +23,7 @@ class Restaurant:
 		self.name = name
 		self.latitude = latitude
 		self.longitude = longitude
+		self.texts = []
 
 	def addCat(self, cats):
 		self.categories = set(cats).union(self.categories) - set(['Restaurants'])
@@ -69,17 +69,20 @@ def main(args):
 		with open(path2business, 'r') as f:
 			for line in f.readlines():
 				business_json = json.loads(line)
-				if business_json['city'] == "Edinburgh" or business_json['city'] == "City of Edinburgh":
-					bjc = business_json['categories']
+				bjc = business_json['categories']
+				if business_json['city']=='Edinburgh' or business_json['city']=='City of Edinburgh':
 					if bjc == None:
 						continue
 					if r in bjc:
 						if len(bjc) > 1:
 							rest = Restaurant(business_json['name'], business_json['business_id'], business_json['city'], business_json['stars'], business_json['latitude'], business_json['longitude'])
-							#rest.addCat(business_json['categories'])
+							rest.addCat(business_json['categories'])
 							rest2rid[rest.rid] = rest
 							factory.add(rest)
 			f.close()
+
+		with open('cat_in_edn.pickle', 'wb') as f:
+			pickle.dump(factory.restaurants,f)
 
 		print "saved restaurant information"
 		return factory
@@ -118,20 +121,33 @@ def main(args):
 		# cuisine_sample = []
 		iirev = {}
 		factory = save_restaurant(CatRest)
+
+		# store the countried cuisine
+		cuisines = []
+		with open('global_cuisine.txt', 'r') as f:
+			for line in f.readlines():
+				cuisines.append(line.replace('\n', ' ').strip())
+
+		print cuisines
+
+		# process review into categories
+		ccount = 0
 		with open(path2reviews, 'r') as f:
 			for line in f.readlines():
 				review_json = json.loads(line)
 				# append review id to restaurant object
 				if review_json['business_id'] in rest2rid:
+					#print "reviewing %s" % rest2rid[review_json['business_id']].name
 					for cat in rest2rid[review_json['business_id']].categories:
-						if cat == 'Italian' or cat == 'Indian':
+						if cat in cuisines:
+							print cat
 							if cat not in cat2rev:
 								cat2rev[cat] = []
 								iirev[cat] = {}
 							cat2rev[cat].append(review_json['text'].replace('\n', ' ').strip())
-							if review_json['stars'] not in iirev[cat]:
-								iirev[cat][review_json['stars']] = 0
-							iirev[cat][review_json['stars']] += 1
+							# if review_json['stars'] not in iirev[cat]:
+							# 	iirev[cat][review_json['stars']] = 0
+							# iirev[cat][review_json['stars']] += 1
 			f.close()
 		
 		with open('data_cat2review.pickle', 'wb') as f:
@@ -139,17 +155,18 @@ def main(args):
 
 		# cuisine_sample = random.sample(cat2rev, cuisine_nb)
 		for cat in cat2rev:
-			print cat
-			with open('review_%s.txt' % cat, 'w') as f:
+			cat_name = cat.replace('/', '-')
+			print "processing %s" % cat
+			with open('review_%s.txt' % cat_name, 'w') as f:
 				f.write('\n'.join(cat2rev[cat]).encode('ascii', 'ignore'))
 			f.close()
 
-		with open('IT_ID_reviewCount.txt', 'w') as f:
-			for cat in iirev:
-				f.write(cat + "\n")
-				for rate in iirev[cat]:
-					f.write(str(rate) + ": " + str(iirev[cat][rate]) + "\n")
-			f.close()
+		# with open('IT_ID_reviewCount.txt', 'w') as f:
+		# 	for cat in iirev:
+		# 		f.write(cat + "\n")
+		# 		for rate in iirev[cat]:
+		# 			f.write(str(rate) + ": " + str(iirev[cat][rate]) + "\n")
+		# 	f.close()
 
 	# Restaurants in same city with reviews
 	if args == "city_rest":
@@ -159,6 +176,7 @@ def main(args):
 				review_json = json.loads(line)
 				for city in factory.restaurants:
 					if review_json['business_id'] in factory.restaurants[city]:
+						print factory.restaurants[city][review_json['business_id']].name
 						factory.restaurants[city][review_json['business_id']].addText(review_json['text'])
 			f.close()
 
@@ -191,7 +209,13 @@ def main(args):
 					#rname = rest.name.replace('/', ' ')
 					candidate.append(rest)
 		#rcount = 569
-		sample_edn = random.sample(candidate, 100)
+		sampled = pickle.load(open('sample_100.pickle', 'rb'))
+		#print len(sampled)
+		sampled_rest = set([sr.rid for sr in sampled])
+		candidate_rest = set([c.rid for c in candidate])
+		f = list(candidate_rest - sampled_rest)
+		#print len(candidate)
+		sample_edn = random.sample(f, 100)
 
 		path = os.getcwd()
 		os.makedirs(path + "/sample_path")
@@ -204,12 +228,14 @@ def main(args):
 		with open('sample_edinburg.pickle', 'wb') as f:
 			pickle.dump(sample_edn,f)
 
+
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--star', action='store_true')
 	parser.add_argument('--cuisine', action='store_true')
 	parser.add_argument('--city', action='store_true')
 	parser.add_argument('--filter', action='store_true')
+	parser.add_argument('--filter_by_cat', action='store_true')
 
 	args = parser.parse_args()
 
@@ -224,7 +250,6 @@ if __name__ == "__main__":
 		main("city_rest")
 	elif args.filter:
 		main("filter")
-
 
 
 

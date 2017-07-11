@@ -14,6 +14,17 @@ from process import Restaurant
 
 cityPath = "Edinburgh_city/*"
 
+def make_sample():
+	sample_data = []
+	sample = glob.glob("sample_path/*")
+	for p in enumerate(sample):
+		new_path = "Edinburgh_city/" + p[1].split('/')[-1]
+		t = list(p)
+		t[1] = new_path
+		p = tuple(t)
+		sample_data.append(p[1])
+	return sample_data
+
 def processlda(filtered=False):
 
 	rest_list = glob.glob(cityPath)
@@ -28,7 +39,7 @@ def processlda(filtered=False):
 	#sample_number = 3
 	count = 0
 	for rpath in enumerate(rest_list):
-		rname = rpath[1].split('/')[-1].strip('.txt')
+		rname = rpath[1].split('/')[-1][:-4]
 		rest2rev[rname] = []
 		vectorizer = idfVectorizer(rpath[1], 10000)
 		reviews.append([str(word) for key, word in vectorizer.id2words.items()])
@@ -64,7 +75,7 @@ def cosineSim():
 	rj_list = glob.glob('RestJson/*')
 	for ip in enumerate(rj_list):
 		cosine_sim = []
-		rname = ip[1].split('/')[-1].strip(".json")
+		rname = ip[1].split('/')[-1][:-5]
 		rls.append(rname)
 		# reference restaurant
 		with open(ip[1]) as f:

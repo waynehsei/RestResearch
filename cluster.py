@@ -4,6 +4,7 @@ from sklearn.cluster import AgglomerativeClustering
 from scipy.spatial import distance
 from scipy.sparse import csr_matrix
 import json
+import pickle
 
 def main(cluster_algorithm, n_clusters, path):
 
@@ -24,7 +25,7 @@ def main(cluster_algorithm, n_clusters, path):
 		cols.append(row)
 		rows.append(col)
 
-	size = len(data['meta']['restaurants'])
+	size = len(data['meta']['phrases'])
 
 	if cluster_algorithm == 'agglomerative':
 		cluster = AgglomerativeClustering(n_clusters=n_clusters)
@@ -51,10 +52,9 @@ if __name__ == '__main__':
 
 	if args.agglomerative:
 		print "Clustering in Agglomerative"
-		main("agglomerative", args.K, './cos_sim_tfidf.json')
+		main("agglomerative", args.K, './cusine_sim.json')
 	elif args.kmeans:
 		print "Clusering in KMeans"
-		main("kmeans", args.K, './cos_sim_tfidf.json')
-
+		main("kmeans", args.K, './cusine_sim.json')
 
 

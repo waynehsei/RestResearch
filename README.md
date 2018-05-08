@@ -1,1 +1,3 @@
-# RestResearch
+# Text-Mining-Yelp-Reviews
+
+The aim of this project is to develop a high-quality restaurant recommendation app that supports personalized location based recommendation by studying user’s behavioral pattern of visiting restaurants. Such pattern could be discovered by applying text mining, a popular technique to mine out meaningful pattern from a large collection of texts. In this project, Latent Dirichlet Allocation (LDA), SegPhrase and other learning algorithms were examined on dining reviews. By combining word vectorization approach via word2vec, similarity analysis and k-means clustering with SegPhrase, all cuisines mentioned by diners were gathered and used as featured identification for restaurants and users. The text mining results were then utilized in the development of an iOS based dining application. 
